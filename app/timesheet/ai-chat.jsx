@@ -2384,26 +2384,24 @@ export default function ChatAi(){
             return;
           }
           
-          // Gunakan tanggal kegiatan yang dipilih, fallback ke tanggal utama
-          const tanggalKegiatan = updatedKegiatan[currentKegiatanIndex].tanggalKegiatan || collectedData.tanggal;
+          // Gunakan tanggal kegiatan yang dipilih (harus sudah ada dari step pemilihan hari)
+          if (!updatedKegiatan[currentKegiatanIndex].tanggalKegiatan) {
+            responseText = `❌ Tanggal kegiatan belum dipilih. Silakan mulai dari pemilihan tanggal terlebih dahulu.`;
+            setSending(false);
+            return;
+          }
+          
+          const tanggalKegiatan = updatedKegiatan[currentKegiatanIndex].tanggalKegiatan;
           const datetime = `${tanggalKegiatan} ${text}`;
           const startTime = new Date(updatedKegiatan[currentKegiatanIndex].starttime);
           let endTime = new Date(datetime);
           
           // Handle next day scenario (e.g., starttime 19:00, endtime 01:00)
+          let isNextDay = false;
           if (endTime <= startTime) {
             // Add 1 day to endtime
             endTime.setDate(endTime.getDate() + 1);
-            // Format manually to avoid timezone issues
-            const year = endTime.getFullYear();
-            const month = String(endTime.getMonth() + 1).padStart(2, '0');
-            const day = String(endTime.getDate()).padStart(2, '0');
-            const hours = String(endTime.getHours()).padStart(2, '0');
-            const minutes = String(endTime.getMinutes()).padStart(2, '0');
-            const formattedEndTime = `${year}-${month}-${day} ${hours}:${minutes}`;
-            responseText = `⏰ Terdeteksi kegiatan hingga hari berikutnya.\n✅ Tersimpan: ${formattedEndTime}`;
-          } else {
-            responseText = `✅ Tersimpan: ${datetime}`;
+            isNextDay = true;
           }
           
           // Format manually to avoid timezone issues
@@ -2413,6 +2411,13 @@ export default function ChatAi(){
           const hours = String(endTime.getHours()).padStart(2, '0');
           const minutes = String(endTime.getMinutes()).padStart(2, '0');
           const formattedEndTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+          
+          // Set response text based on next day detection
+          if (isNextDay) {
+            responseText = `⏰ Terdeteksi kegiatan hingga hari berikutnya.\n✅ Tersimpan: ${formattedEndTime}`;
+          } else {
+            responseText = `✅ Tersimpan: ${formattedEndTime}`;
+          }
           
           updatedKegiatan[currentKegiatanIndex] = {
             ...updatedKegiatan[currentKegiatanIndex],

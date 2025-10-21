@@ -61,7 +61,7 @@ console.log('\n=== SIMULASI USER INPUT ===');
 // Test dengan tanggal ops 14/10/2025
 console.log('\n=== SIMULASI USER INPUT (Tanggal Ops: 14/10/2025) ===');
 
-// Test 1: User pilih tanggal ops
+// Test 1: User pilih tanggal ops (14/10/2025)
 const userInput1 = "2025-10-14";
 const selected1 = hariOptions2.find(option => 
   option.label.toLowerCase().includes(userInput1.toLowerCase()) || 
@@ -70,45 +70,71 @@ const selected1 = hariOptions2.find(option =>
 
 if (selected1) {
   console.log(`✅ Input "${userInput1}" dikenali sebagai: ${selected1.displayDate}`);
-  console.log(`📅 Tanggal tersimpan: ${selected1.value}`);
+  console.log(`📅 Tanggal kegiatan tersimpan: ${selected1.value}`);
   
-  // Simulasi input waktu
-  const waktuInput = "19:00";
-  const datetime = `${selected1.value} ${waktuInput}`;
-  console.log(`🕐 Waktu mulai tersimpan: ${datetime}`);
+  // Simulasi input waktu mulai
+  const waktuMulai = "19:00";
+  const starttime = `${selected1.value} ${waktuMulai}`;
+  console.log(`🕐 Waktu mulai tersimpan: ${starttime}`);
   
-  // Simulasi next day scenario
+  // Simulasi input waktu selesai dengan next day scenario
   const waktuSelesai = "01:00";
-  const startTime = new Date(datetime);
+  const startTime = new Date(starttime);
   let endTime = new Date(`${selected1.value} ${waktuSelesai}`);
   
   console.log(`Debug: startTime = ${startTime}`);
-  console.log(`Debug: endTime = ${endTime}`);
+  console.log(`Debug: initial endTime = ${endTime}`);
   console.log(`Debug: endTime <= startTime = ${endTime <= startTime}`);
   
+  let isNextDay = false;
   if (endTime <= startTime) {
     endTime.setDate(endTime.getDate() + 1);
-    // Format manually to avoid timezone issues
-    const year = endTime.getFullYear();
-    const month = String(endTime.getMonth() + 1).padStart(2, '0');
-    const day = String(endTime.getDate()).padStart(2, '0');
-    const hours = String(endTime.getHours()).padStart(2, '0');
-    const minutes = String(endTime.getMinutes()).padStart(2, '0');
-    const formattedEndTime = `${year}-${month}-${day} ${hours}:${minutes}`;
-    
-    console.log(`Debug: adjusted endTime = ${endTime}`);
-    console.log(`Debug: formattedEndTime = ${formattedEndTime}`);
+    isNextDay = true;
+  }
+  
+  // Format manually to avoid timezone issues
+  const year = endTime.getFullYear();
+  const month = String(endTime.getMonth() + 1).padStart(2, '0');
+  const day = String(endTime.getDate()).padStart(2, '0');
+  const hours = String(endTime.getHours()).padStart(2, '0');
+  const minutes = String(endTime.getMinutes()).padStart(2, '0');
+  const formattedEndTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+  
+  console.log(`Debug: adjusted endTime = ${endTime}`);
+  console.log(`Debug: formattedEndTime = ${formattedEndTime}`);
+  
+  if (isNextDay) {
     console.log(`⏰ Next day detected!`);
     console.log(`🕐 Waktu selesai tersimpan: ${formattedEndTime}`);
     console.log(`📅 Expected: 2025-10-15 01:00 (besok dari 14/10/2025)`);
   } else {
-    console.log(`🕐 Waktu selesai tersimpan: ${selected1.value} ${waktuSelesai}`);
+    console.log(`🕐 Waktu selesai tersimpan: ${formattedEndTime}`);
   }
+  
+  // Test 2: Same day scenario
+  console.log(`\n--- Same Day Test ---`);
+  const waktuSelesaiSameDay = "22:00";
+  let endTimeSameDay = new Date(`${selected1.value} ${waktuSelesaiSameDay}`);
+  
+  if (endTimeSameDay <= startTime) {
+    endTimeSameDay.setDate(endTimeSameDay.getDate() + 1);
+  }
+  
+  const year2 = endTimeSameDay.getFullYear();
+  const month2 = String(endTimeSameDay.getMonth() + 1).padStart(2, '0');
+  const day2 = String(endTimeSameDay.getDate()).padStart(2, '0');
+  const hours2 = String(endTimeSameDay.getHours()).padStart(2, '0');
+  const minutes2 = String(endTimeSameDay.getMinutes()).padStart(2, '0');
+  const formattedEndTimeSameDay = `${year2}-${month2}-${day2} ${hours2}:${minutes2}`;
+  
+  console.log(`🕐 Waktu selesai same day (22:00) tersimpan: ${formattedEndTimeSameDay}`);
+  console.log(`📅 Expected: 2025-10-14 22:00 (same day)`);
+  
 } else {
   console.log(`❌ Input "${userInput1}" tidak dikenali`);
 }
 
-// Test 2: User pilih "Besok" (15/10/2025)
+// Test 3: User pilih "Besok" (15/10/2025)
 const userInput2 = "Besok";
 const selected2 = hariOptions2.find(option => 
   option.label.toLowerCase().includes(userInput2.toLowerCase()) || 
@@ -117,8 +143,26 @@ const selected2 = hariOptions2.find(option =>
 
 if (selected2) {
   console.log(`\n✅ Input "${userInput2}" dikenali sebagai: ${selected2.displayDate}`);
-  console.log(`📅 Tanggal tersimpan: ${selected2.value}`);
+  console.log(`📅 Tanggal kegiatan tersimpan: ${selected2.value}`);
   console.log(`📅 Expected: 2025-10-15 (besok dari 14/10/2025)`);
+  
+  // Test activity yang tidak melewati tengah malam
+  const waktuMulai2 = "09:00";
+  const waktuSelesai2 = "17:00";
+  const starttime2 = `${selected2.value} ${waktuMulai2}`;
+  const endTime2 = new Date(`${selected2.value} ${waktuSelesai2}`);
+  
+  const year3 = endTime2.getFullYear();
+  const month3 = String(endTime2.getMonth() + 1).padStart(2, '0');
+  const day3 = String(endTime2.getDate()).padStart(2, '0');
+  const hours3 = String(endTime2.getHours()).padStart(2, '0');
+  const minutes3 = String(endTime2.getMinutes()).padStart(2, '0');
+  const formattedEndTime2 = `${year3}-${month3}-${day3} ${hours3}:${minutes3}`;
+  
+  console.log(`🕐 Waktu mulai tersimpan: ${starttime2}`);
+  console.log(`🕐 Waktu selesai tersimpan: ${formattedEndTime2}`);
+  console.log(`📅 Expected: 2025-10-15 17:00 (same day, no next day)`);
+  
 } else {
   console.log(`\n❌ Input "${userInput2}" tidak dikenali`);
 }
