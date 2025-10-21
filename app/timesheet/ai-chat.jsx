@@ -71,7 +71,7 @@ export default function ChatAi(){
   const [currentStep, setCurrentStep] = useState(ConversationStep.DATE_INPUT);
   const [collectedData, setCollectedData] = useState({});
   const [quickReplies, setQuickReplies] = useState(null);
-  const [useAI, setUseAI] = useState(false);
+  const [useAI, setUseAI] = useState(true);
   const [aiInitialized, setAiInitialized] = useState(false);
   const [currentKegiatanIndex, setCurrentKegiatanIndex] = useState(0);
   const [validationErrors, setValidationErrors] = useState({});
@@ -96,16 +96,17 @@ export default function ChatAi(){
     return `${prefix}${Date.now()}-${counter}-${Math.random().toString(36).substr(2, 9)}`;
   };
 
-  // Generate hari options (hari ini & besok)
+  // Generate hari options (hari ops & besok)
   const generateHariOptions = () => {
-    const today = new Date();
-    const tomorrow = new Date(today);
+    // Gunakan tanggal operational yang dipilih di awal
+    const dateOps = collectedData.tanggal ? new Date(collectedData.tanggal) : new Date();
+    const tomorrow = new Date(dateOps);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    const hariIni = {
-      label: `Hari Ini (${formatHari(today)}, ${today.getDate()} ${formatBulan(today)} ${today.getFullYear()})`,
-      value: today.toISOString().slice(0, 10), // YYYY-MM-DD
-      displayDate: formatHari(today) + ', ' + today.getDate() + ' ' + formatBulan(today) + ' ' + today.getFullYear()
+    const hariOps = {
+      label: `${formatHari(dateOps)}, ${dateOps.getDate()} ${formatBulan(dateOps)} ${dateOps.getFullYear()} (Tanggal Ops)`,
+      value: dateOps.toISOString().slice(0, 10), // YYYY-MM-DD
+      displayDate: formatHari(dateOps) + ', ' + dateOps.getDate() + ' ' + formatBulan(dateOps) + ' ' + dateOps.getFullYear()
     };
     
     const besok = {
@@ -114,7 +115,7 @@ export default function ChatAi(){
       displayDate: formatHari(tomorrow) + ', ' + tomorrow.getDate() + ' ' + formatBulan(tomorrow) + ' ' + tomorrow.getFullYear()
     };
     
-    return [hariIni, besok];
+    return [hariOps, besok];
   };
 
   // Format hari dalam bahasa Indonesia menggunakan moment
@@ -286,7 +287,7 @@ export default function ChatAi(){
         setAiInitialized(true);
         
       } catch (e) {
-        console.error("❌ Failed to init Gemini:", e.message);
+        console.log("❌ Failed to init Gemini:", e.message);
         console.warn("⚠️ AI features will be disabled, using fallback responses");
         modelRef.current = null;
         setAiInitialized(false);
@@ -485,7 +486,7 @@ export default function ChatAi(){
         }, 500);
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
+      console.log('Error taking photo:', error);
       Alert.alert('Error', 'Gagal mengambil foto. Silakan coba lagi.');
     }
   };
@@ -541,7 +542,7 @@ export default function ChatAi(){
         }, 500);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      console.log('Error picking image:', error);
       Alert.alert('Error', 'Gagal memilih foto. Silakan coba lagi.');
     }
   };
@@ -751,7 +752,7 @@ export default function ChatAi(){
       
       return trimmedText;
     } catch (error) {
-      console.error("❌ Gemini API error:", error.message);
+      console.log("❌ Gemini API error:", error.message);
       throw error;
     }
   };
@@ -901,7 +902,7 @@ export default function ChatAi(){
       [ConversationStep.KEGIATAN_MATERIAL]: "Material apa? (ketik - jika tidak ada)",
       [ConversationStep.KEGIATAN_LOKASI_ASAL]: "Lokasi asal di mana?",
       [ConversationStep.KEGIATAN_LOKASI_TUJUAN]: "Lokasi tujuan di mana? (ketik - jika tidak ada)",
-      [ConversationStep.KEGIATAN_HARI]: "Pilih hari untuk kegiatan:",
+      [ConversationStep.KEGIATAN_HARI]: "Pilih tanggal untuk kegiatan:",
       [ConversationStep.KEGIATAN_WAKTU]: "Waktu mulai jam berapa?",
       [ConversationStep.KEGIATAN_HM]: "HM/KM per kegiatan berapa?",
       [ConversationStep.KEGIATAN_RITASE]: "Jumlah ritase berapa?",
@@ -1013,7 +1014,7 @@ export default function ChatAi(){
         console.log("✅ Equipment selected from click:", equipment.kode, "-", equipment.nama);
       }
     } catch (error) {
-      console.error('Error processing equipment selection:', error);
+      console.log('Error processing equipment selection:', error);
       const errorMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
@@ -1093,7 +1094,7 @@ export default function ChatAi(){
         console.log("✅ Kegiatan selected from click:", kegiatan.nama);
       }
     } catch (error) {
-      console.error('Error processing kegiatan selection:', error);
+      console.log('Error processing kegiatan selection:', error);
       const errorMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
@@ -1228,7 +1229,7 @@ export default function ChatAi(){
         console.log("✅ Material selected from click:", material.nama);
       }
     } catch (error) {
-      console.error('Error processing material selection:', error);
+      console.log('Error processing material selection:', error);
       const errorMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
@@ -1371,7 +1372,7 @@ export default function ChatAi(){
         console.log("✅ Lokasi asal selected from click:", lokasi.nama);
       }
     } catch (error) {
-      console.error('Error processing lokasi asal selection:', error);
+      console.log('Error processing lokasi asal selection:', error);
       const errorMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
@@ -1496,7 +1497,7 @@ export default function ChatAi(){
         console.log("✅ Lokasi tujuan selected from click:", lokasi.nama);
       }
     } catch (error) {
-      console.error('Error processing lokasi tujuan selection:', error);
+      console.log('Error processing lokasi tujuan selection:', error);
       const errorMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
@@ -1556,7 +1557,7 @@ export default function ChatAi(){
         console.log("✅ Penyewa selected from click:", penyewa.nama);
       }
     } catch (error) {
-      console.error('Error processing penyewa selection:', error);
+      console.log('Error processing penyewa selection:', error);
       const errorMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
@@ -2346,7 +2347,7 @@ export default function ChatAi(){
           };
           setCollectedData(prev => ({ ...prev, kegiatan: updatedKegiatan }));
           
-          responseText = `📅 Hari dipilih: ${selectedOption.displayDate}\n🕐 Waktu mulai jam berapa?\nInput akan disimpan sebagai: ${selectedOption.value} HH:mm`;
+          responseText = `📅 Tanggal dipilih: ${selectedOption.displayDate}\n🕐 Waktu mulai jam berapa?\nInput akan disimpan sebagai: ${selectedOption.value} HH:mm`;
           setCurrentStep(ConversationStep.KEGIATAN_WAKTU);
           setQuickReplies(getStepQuickReplies(ConversationStep.KEGIATAN_WAKTU));
         } else {
@@ -2803,7 +2804,7 @@ export default function ChatAi(){
       setQuickReplies(nextQuickReplies);
       
     } catch (err) {
-      console.error("Error:", err);
+      console.log("Error:", err);
       const errMsg = { 
         id: generateUniqueId('a-'), 
         role: "assistant", 
