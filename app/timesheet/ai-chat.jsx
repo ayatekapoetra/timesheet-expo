@@ -33,6 +33,7 @@ const ConversationStep = {
   KEGIATAN_MATERIAL: 'kegiatan_material',
   KEGIATAN_LOKASI_ASAL: 'kegiatan_lokasi_asal',
   KEGIATAN_LOKASI_TUJUAN: 'kegiatan_lokasi_tujuan',
+  KEGIATAN_HARI: 'kegiatan_hari',
   KEGIATAN_WAKTU: 'kegiatan_waktu',
   KEGIATAN_HM: 'kegiatan_hm',
   KEGIATAN_RITASE: 'kegiatan_ritase',
@@ -81,6 +82,7 @@ export default function ChatAi(){
   const [materialList, setMaterialList] = useState([]);
   const [lokasiAsalList, setLokasiAsalList] = useState([]);
   const [lokasiTujuanList, setLokasiTujuanList] = useState([]);
+  const [hariOptions, setHariOptions] = useState([]);
   const [messageCounter, setMessageCounter] = useState(0);
   const listRef = useRef(null);
   const modelRef = useRef(null);
@@ -92,6 +94,37 @@ export default function ChatAi(){
     const counter = messageCounter + 1;
     setMessageCounter(counter);
     return `${prefix}${Date.now()}-${counter}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Generate hari options (hari ini & besok)
+  const generateHariOptions = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const hariIni = {
+      label: `Hari Ini (${formatHari(today)}, ${today.getDate()} ${formatBulan(today)} ${today.getFullYear()})`,
+      value: today.toISOString().slice(0, 10), // YYYY-MM-DD
+      displayDate: formatHari(today) + ', ' + today.getDate() + ' ' + formatBulan(today) + ' ' + today.getFullYear()
+    };
+    
+    const besok = {
+      label: `Besok (${formatHari(tomorrow)}, ${tomorrow.getDate()} ${formatBulan(tomorrow)} ${tomorrow.getFullYear()})`,
+      value: tomorrow.toISOString().slice(0, 10), // YYYY-MM-DD
+      displayDate: formatHari(tomorrow) + ', ' + tomorrow.getDate() + ' ' + formatBulan(tomorrow) + ' ' + tomorrow.getFullYear()
+    };
+    
+    return [hariIni, besok];
+  };
+
+  // Format hari dalam bahasa Indonesia menggunakan moment
+  const formatHari = (date) => {
+    return moment(date).locale('id').format('dddd');
+  };
+
+  // Format bulan dalam bahasa Indonesia menggunakan moment
+  const formatBulan = (date) => {
+    return moment(date).locale('id').format('MMM');
   };
 
   // Filter equipment based on user type
@@ -635,10 +668,11 @@ export default function ChatAi(){
       [ConversationStep.KEGIATAN_MATERIAL]: "Step 10b: Tanya material (opsional)",
       [ConversationStep.KEGIATAN_LOKASI_ASAL]: "Step 10c: Tanya lokasi asal",
       [ConversationStep.KEGIATAN_LOKASI_TUJUAN]: "Step 10d: Tanya lokasi tujuan (opsional)",
-      [ConversationStep.KEGIATAN_WAKTU]: "Step 10e: Tanya waktu mulai dan selesai",
-      [ConversationStep.KEGIATAN_HM]: "Step 10f: Tanya HM/KM per kegiatan (opsional)",
-      [ConversationStep.KEGIATAN_RITASE]: "Step 10g: Tanya jumlah ritase",
-      [ConversationStep.KEGIATAN_ADD_MORE]: "Step 10h: Tanya apakah ada kegiatan lain",
+      [ConversationStep.KEGIATAN_HARI]: "Step 10e: Tanya pemilihan hari",
+      [ConversationStep.KEGIATAN_WAKTU]: "Step 10f: Tanya waktu mulai dan selesai",
+      [ConversationStep.KEGIATAN_HM]: "Step 10g: Tanya HM/KM per kegiatan (opsional)",
+      [ConversationStep.KEGIATAN_RITASE]: "Step 10h: Tanya jumlah ritase",
+      [ConversationStep.KEGIATAN_ADD_MORE]: "Step 10i: Tanya apakah ada kegiatan lain",
       [ConversationStep.KETERANGAN_INPUT]: "Step 11: Tanya keterangan (opsional)",
       [ConversationStep.FOTO_INPUT]: "Step 12: Tanya foto (opsional)",
       [ConversationStep.CONFIRMATION]: "Step 13: Tampilkan ringkasan dan minta konfirmasi"
@@ -867,6 +901,7 @@ export default function ChatAi(){
       [ConversationStep.KEGIATAN_MATERIAL]: "Material apa? (ketik - jika tidak ada)",
       [ConversationStep.KEGIATAN_LOKASI_ASAL]: "Lokasi asal di mana?",
       [ConversationStep.KEGIATAN_LOKASI_TUJUAN]: "Lokasi tujuan di mana? (ketik - jika tidak ada)",
+      [ConversationStep.KEGIATAN_HARI]: "Pilih hari untuk kegiatan:",
       [ConversationStep.KEGIATAN_WAKTU]: "Waktu mulai jam berapa?",
       [ConversationStep.KEGIATAN_HM]: "HM/KM per kegiatan berapa?",
       [ConversationStep.KEGIATAN_RITASE]: "Jumlah ritase berapa?",
@@ -893,6 +928,7 @@ export default function ChatAi(){
       [ConversationStep.KEGIATAN_MATERIAL]: [], // Material menggunakan interactive list
       [ConversationStep.KEGIATAN_LOKASI_ASAL]: [], // Lokasi Asal menggunakan interactive list
       [ConversationStep.KEGIATAN_LOKASI_TUJUAN]: [], // Lokasi Tujuan menggunakan interactive list
+      [ConversationStep.KEGIATAN_HARI]: generateHariOptions().map(h => ({ label: h.label, value: h.value })), // Hari options
     };
     return quickReplies[step] || null;
   };
@@ -1414,8 +1450,8 @@ export default function ChatAi(){
         };
         setMessages(prev => [...prev, botMsg]);
         
-        setQuickReplies([]);
-        setCurrentStep(ConversationStep.KEGIATAN_WAKTU);
+        setCurrentStep(ConversationStep.KEGIATAN_HARI);
+        setQuickReplies(getStepQuickReplies(ConversationStep.KEGIATAN_HARI));
         console.log("✅ No lokasi tujuan selected");
         return;
       }
@@ -1455,8 +1491,8 @@ export default function ChatAi(){
         };
         setMessages(prev => [...prev, botMsg]);
         
-        setQuickReplies([]);
-        setCurrentStep(ConversationStep.KEGIATAN_WAKTU);
+        setCurrentStep(ConversationStep.KEGIATAN_HARI);
+        setQuickReplies(getStepQuickReplies(ConversationStep.KEGIATAN_HARI));
         console.log("✅ Lokasi tujuan selected from click:", lokasi.nama);
       }
     } catch (error) {
@@ -2289,7 +2325,35 @@ export default function ChatAi(){
           responseText = `✅ Lokasi dicatat. Waktu mulai jam berapa? (format: 08:00)`;
         }
         
-        setCurrentStep(ConversationStep.KEGIATAN_WAKTU);
+        setCurrentStep(ConversationStep.KEGIATAN_HARI);
+        setQuickReplies(getStepQuickReplies(ConversationStep.KEGIATAN_HARI));
+      }
+      else if (currentStep === ConversationStep.KEGIATAN_HARI) {
+        // Handle pemilihan hari untuk kegiatan
+        const hariOptions = generateHariOptions();
+        const selectedOption = hariOptions.find(option => 
+          option.label.toLowerCase().includes(text.toLowerCase()) || 
+          option.value === text
+        );
+        
+        if (selectedOption) {
+          // Simpan tanggal yang dipilih untuk kegiatan ini
+          const updatedKegiatan = [...collectedData.kegiatan];
+          updatedKegiatan[currentKegiatanIndex] = {
+            ...updatedKegiatan[currentKegiatanIndex],
+            tanggalKegiatan: selectedOption.value,
+            displayTanggal: selectedOption.displayDate
+          };
+          setCollectedData(prev => ({ ...prev, kegiatan: updatedKegiatan }));
+          
+          responseText = `📅 Hari dipilih: ${selectedOption.displayDate}\n🕐 Waktu mulai jam berapa?\nInput akan disimpan sebagai: ${selectedOption.value} HH:mm`;
+          setCurrentStep(ConversationStep.KEGIATAN_WAKTU);
+          setQuickReplies(getStepQuickReplies(ConversationStep.KEGIATAN_WAKTU));
+        } else {
+          responseText = `❌ Pilihan tidak valid. Silakan pilih:\n${hariOptions.map(h => `• ${h.label}`).join('\n')}`;
+          setSending(false);
+          return;
+        }
       }
       else if (currentStep === ConversationStep.KEGIATAN_WAKTU) {
         const updatedKegiatan = [...collectedData.kegiatan];
@@ -2302,13 +2366,15 @@ export default function ChatAi(){
             return;
           }
           
-          const datetime = `${collectedData.tanggal} ${text}`;
+          // Gunakan tanggal kegiatan yang dipilih, fallback ke tanggal utama
+          const tanggalKegiatan = updatedKegiatan[currentKegiatanIndex].tanggalKegiatan || collectedData.tanggal;
+          const datetime = `${tanggalKegiatan} ${text}`;
           updatedKegiatan[currentKegiatanIndex] = {
             ...updatedKegiatan[currentKegiatanIndex],
             starttime: datetime
           };
           setCollectedData(prev => ({ ...prev, kegiatan: updatedKegiatan }));
-          responseText = `✅ Waktu mulai ${text} dicatat. Waktu selesai jam berapa? (format: 17:00)`;
+          responseText = `✅ Tersimpan: ${datetime}\n🕐 Waktu selesai jam berapa?\nInput akan disimpan sebagai: ${tanggalKegiatan} HH:mm`;
         } else {
           const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
           if (!timeRegex.test(text)) {
@@ -2317,7 +2383,9 @@ export default function ChatAi(){
             return;
           }
           
-          const datetime = `${collectedData.tanggal} ${text}`;
+          // Gunakan tanggal kegiatan yang dipilih, fallback ke tanggal utama
+          const tanggalKegiatan = updatedKegiatan[currentKegiatanIndex].tanggalKegiatan || collectedData.tanggal;
+          const datetime = `${tanggalKegiatan} ${text}`;
           const startTime = new Date(updatedKegiatan[currentKegiatanIndex].starttime);
           let endTime = new Date(datetime);
           
@@ -2325,12 +2393,29 @@ export default function ChatAi(){
           if (endTime <= startTime) {
             // Add 1 day to endtime
             endTime.setDate(endTime.getDate() + 1);
-            responseText = `⏰ Terdeteksi kegiatan hingga hari berikutnya. Waktu selesai: ${endTime.toLocaleString('id-ID')}`;
+            // Format manually to avoid timezone issues
+            const year = endTime.getFullYear();
+            const month = String(endTime.getMonth() + 1).padStart(2, '0');
+            const day = String(endTime.getDate()).padStart(2, '0');
+            const hours = String(endTime.getHours()).padStart(2, '0');
+            const minutes = String(endTime.getMinutes()).padStart(2, '0');
+            const formattedEndTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+            responseText = `⏰ Terdeteksi kegiatan hingga hari berikutnya.\n✅ Tersimpan: ${formattedEndTime}`;
+          } else {
+            responseText = `✅ Tersimpan: ${datetime}`;
           }
+          
+          // Format manually to avoid timezone issues
+          const year = endTime.getFullYear();
+          const month = String(endTime.getMonth() + 1).padStart(2, '0');
+          const day = String(endTime.getDate()).padStart(2, '0');
+          const hours = String(endTime.getHours()).padStart(2, '0');
+          const minutes = String(endTime.getMinutes()).padStart(2, '0');
+          const formattedEndTime = `${year}-${month}-${day} ${hours}:${minutes}`;
           
           updatedKegiatan[currentKegiatanIndex] = {
             ...updatedKegiatan[currentKegiatanIndex],
-            endtime: endTime.toISOString().slice(0, 16).replace('T', ' ')
+            endtime: formattedEndTime
           };
           setCollectedData(prev => ({ ...prev, kegiatan: updatedKegiatan }));
           
