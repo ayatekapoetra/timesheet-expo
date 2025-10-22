@@ -3,6 +3,8 @@
 # dependencies
 node_modules/
 
+.easignore
+
 # Expo
 .expo/
 dist/
@@ -82,4 +84,11 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# @end expo-cli
+# @end expo-cli-e 
+# Google Service Account
+google-service-account.json
+*.json
+-e 
+# Keystore folder
+@keystore/
+
