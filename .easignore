@@ -1,0 +1,19 @@
+# Ignore native folders (EAS will regenerate them)
+android/
+ios/
+
+# Ignore large files
+*.ipa
+*.apk
+*.aab
+
+# Ignore build artifacts
+.expo/
+node_modules/
+
+# Ignore docs
+doc/
+BUILD-RELEASE-APPS.md
+BUILD_FILES_LOCATION.md
+BUILD_STATUS_SUMMARY.md
+TESTFLIGHT_UPLOAD_GUIDE.md
