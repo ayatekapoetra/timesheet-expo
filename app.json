@@ -2,47 +2,81 @@
   "expo": {
     "name": "expooprdrv",
     "slug": "expooprdrv",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expooprdrv",
+    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+     "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#202938"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.makkuragatam.expooprdrv",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Aplikasi membutuhkan akses kamera untuk proses absensi (check in/out)",
+        "NSMicrophoneUsageDescription": "Aplikasi membutuhkan akses mikrofon untuk fungsi kamera",
+        "NSLocationWhenInUseUsageDescription": "Aplikasi membutuhkan lokasi untuk validasi area absensi",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyDgpw4bFVEE_z6YzlgbiGvxMa9BegDVCMM"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#202938"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.makkuragatam.expooprdrv",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDgpw4bFVEE_z6YzlgbiGvxMa9BegDVCMM"
+        }
+      }
     },
     "web": {
+      "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
+      "plugins": [
+        "expo-router",
+        "expo-font",
+        [
+          "expo-splash-screen",
+          {
+            "backgroundColor": "#202938",
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 200
           }
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
+        ],
+        [
+          "expo-camera",
+          {
+            "cameraPermission": "Aplikasi membutuhkan akses kamera untuk proses absensi dan timesheet",
+            "microphonePermission": "Aplikasi membutuhkan akses mikrofon untuk fungsi kamera",
+            "recordAudioAndroid": false
+          }
+        ],
+        "expo-secure-store"
+      ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "717802b8-1446-48ce-8995-99385258c2c4"
+      },
+      "EXPO_PUBLIC_GEMINI_API_KEY": "AIzaSyDfxfVWPtwbai8Olg9a-KPhmg3EfU6d1O4"
+    },
+    "owner": "ayateka"
   }
 }
