@@ -6,14 +6,16 @@ import appmode from '@/src/helpers/ThemesMode';
 import { useAppSelector } from '@/src/redux/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Application from 'expo-application';
+import { useCameraPermissions } from 'expo-camera';
+import * as DeviceInfo from 'expo-device';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { getDistance, orderByDistance } from 'geolib';
 import moment from 'moment';
 import 'moment/locale/id';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import DeviceInfo from 'react-native-device-info';
+import { ActivityIndicator, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CameraScreen from './camera-screen';
 import MapScreen from './map-screen';
 
@@ -28,14 +30,63 @@ export default function AbsensiPage() {
   const [camType, setCamType] = useState('in');
   const [modal, setModal] = useState({ visible: false, title: '', body: '', variant: 'warning', footerText: 'OK' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  
+  // Helper function to get device ID
+  const getDeviceId = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        // Try multiple methods for Android device ID
+        try {
+          const androidId = Application.getAndroidId();
+          console.log('📱 Android ID from Application:', androidId);
+          if (androidId && androidId !== 'unknown') {
+            return androidId;
+          }
+        } catch (androidIdError) {
+          console.warn('Failed to get Android ID:', androidIdError);
+        }
+        
+        // Fallback to DeviceInfo methods
+        const fallbackId = DeviceInfo.osInternalBuildId || 
+                          DeviceInfo.modelId || 
+                          DeviceInfo.deviceId || 
+                          'unknown-android';
+        console.log('📱 Using fallback device ID:', fallbackId);
+        return fallbackId;
+      } else {
+        // For iOS
+        const modelId = DeviceInfo.modelId || 'unknown';
+        const iosId = `${Application.bundleId}-${modelId}-${Date.now()}`;
+        console.log('📱 iOS device ID:', iosId);
+        return iosId;
+      }
+    } catch (error) {
+      console.error('Error getting device ID:', error);
+      return `error-${Platform.OS}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+  };
+  
   
   const handleCheckIn = async (photo) => {
     if (isSubmitting) return;
     
+    // Validate photo object
+    if (!photo || (!photo.uri && !photo.path)) {
+      setModal({ 
+        visible: true, 
+        title: 'Error', 
+        body: 'Foto tidak valid. Silakan coba lagi.', 
+        variant: 'danger', 
+        footerText: 'Tutup' 
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       // Get device unique ID
-      const uniqueId = await DeviceInfo.getUniqueId();
+      const uniqueId = await getDeviceId();
       
       // Get current location
       const location = await Location.getCurrentPositionAsync({ 
@@ -46,11 +97,34 @@ export default function AbsensiPage() {
       const formData = new FormData();
       
       // Add photo
-      formData.append('photo', {
-        uri: `file://${photo.path}`,
+      console.log('📸 Photo object:', photo);
+      console.log('📸 Photo URI:', photo.uri);
+      console.log('📸 Photo path:', photo.path);
+      
+      // Handle different photo URI formats for iOS/Android
+      let photoUri = photo.uri || photo.path;
+      
+      // For iOS, ensure proper file:// prefix if missing
+      // if (photoUri && !photoUri.startsWith('file://') && !photoUri.startsWith('http')) {
+      //   photoUri = Platform.OS === 'ios' ? `file://${photoUri}` : photoUri;
+      //   const uriPhoto = Platform.OS === "android" ? photo.path : photo.path.replace("file://", "")
+      // }
+
+      photoUri = Platform.OS === "android" ? photoUri : photoUri.replace("file://", "")
+      
+      const photoName = `checkin_${Date.now()}.jpg`;
+      
+      console.log('📸 Final photo URI for FormData:', photoUri);
+      
+      const photoFile = {
+        uri: photoUri,
         type: 'image/jpeg',
-        name: `checkin_${Date.now()}.jpg`,
-      });
+        name: photoName,
+      };
+      
+      console.log('📸 Photo file object for FormData:', photoFile);
+      
+      formData.append('photo', photoFile);
       
       // Add pin from employee data
       formData.append('pin', employee?.pin || '');
@@ -63,17 +137,43 @@ export default function AbsensiPage() {
       formData.append('latitude', location.coords.latitude.toString());
       formData.append('longitude', location.coords.longitude.toString());
       
+      // Debug logging
+      console.log('📸 Check-In submitting:', { 
+        pin: employee?.pin, 
+        karyawan_id: employee.id,
+        device_id: uniqueId,
+        hasLocation: !!location,
+        location: {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude
+        }
+      });
+      
+      // Log FormData entries (for debugging)
+      console.log('📸 FormData entries being sent:');
+      for (let [key, value] of formData.entries()) {
+        if (key === 'photo') {
+          console.log(`  ${key}:`, { uri: value.uri, type: value.type, name: value.name });
+        } else {
+          console.log(`  ${key}:`, value);
+        }
+      }
+      
       // Submit to API
+      console.log('🚀 Starting Check-In API call...');
       const response = await apiFetch.post('/mobile/check-in-mobile/karyawan', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         transformRequest: [(data, headers) => {
+          // Remove default Content-Type to let browser set it automatically for FormData
           delete headers['Content-Type'];
           delete headers['Content-type'];
           return data;
         }],
       });
+
+      console.log('✅ Check-In API response received:', response);
       
       setModal({ 
         visible: true, 
@@ -84,6 +184,7 @@ export default function AbsensiPage() {
       });
       
     } catch (error) {
+      console.log('response----', JSON.stringify(error, null, 2));
       
       let errorMessage = 'Gagal melakukan check-in';
       let errorTitle = 'Error';
@@ -125,10 +226,22 @@ export default function AbsensiPage() {
   const handleCheckOut = async (photo) => {
     if (isSubmitting) return;
     
+    // Validate photo object
+    if (!photo || (!photo.uri && !photo.path)) {
+      setModal({ 
+        visible: true, 
+        title: 'Error', 
+        body: 'Foto tidak valid. Silakan coba lagi.', 
+        variant: 'danger', 
+        footerText: 'Tutup' 
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       // Get device unique ID
-      const uniqueId = await DeviceInfo.getUniqueId();
+      const uniqueId = await getDeviceId();
       
       // Get current location
       const location = await Location.getCurrentPositionAsync({ 
@@ -139,14 +252,31 @@ export default function AbsensiPage() {
       const formData = new FormData();
       
       // Add photo
+      console.log('📸 Check-Out photo object:', photo);
+      console.log('📸 Check-Out photo URI:', photo.uri);
+      console.log('📸 Check-Out photo path:', photo.path);
+      
+      // Handle different photo URI formats for iOS/Android
+      let photoUri = photo.uri || photo.path;
+      
+      // For iOS, ensure proper file:// prefix if missing
+      if (photoUri && !photoUri.startsWith('file://') && !photoUri.startsWith('http')) {
+        photoUri = Platform.OS === 'ios' ? `file://${photoUri}` : photoUri;
+      }
+      
+      const photoName = `checkout_${Date.now()}.jpg`;
+      
+      console.log('📸 Final Check-Out photo URI for FormData:', photoUri);
+      
       formData.append('photo', {
-        uri: `file://${photo.path}`,
+        uri: photoUri,
         type: 'image/jpeg',
-        name: `checkout_${Date.now()}.jpg`,
+        name: photoName,
       });
       
       // Add pin from employee data
       formData.append('pin', employee?.pin || '');
+      formData.append('karyawan_id', employee.id || '');
       
       // Add device_id
       formData.append('device_id', uniqueId);
@@ -155,7 +285,20 @@ export default function AbsensiPage() {
       formData.append('latitude', location.coords.latitude.toString());
       formData.append('longitude', location.coords.longitude.toString());
       
+      // Debug logging
+      console.log('📸 Check-Out submitting:', { 
+        pin: employee?.pin, 
+        karyawan_id: employee.id,
+        device_id: uniqueId,
+        hasLocation: !!location,
+        location: {
+          lat: location.coords.latitude,
+          lng: location.coords.longitude
+        }
+      });
+      
       // Submit to API (you may need to change endpoint for check-out)
+      console.log('🚀 Starting Check-Out API call...');
       const response = await apiFetch.post('/mobile/check-out-mobile/karyawan', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -167,7 +310,7 @@ export default function AbsensiPage() {
         }],
       });
       
-      console.log('✅ Check-Out Response:', response.data);
+      console.log('✅ Check-Out API response received:', response.data);
       
       setModal({ 
         visible: true, 
@@ -218,7 +361,26 @@ export default function AbsensiPage() {
   
   const requestAndOpenCamera = async (type) => {
     try {
-      const { Camera } = await import('react-native-vision-camera');
+      console.log('📸 Starting camera request...');
+      console.log('📸 Current permission status:', permission);
+      
+      // Camera permission first
+      if (!permission.granted) {
+        console.log('📸 Requesting camera permission...');
+        const result = await requestPermission();
+        console.log('📸 Permission request result:', result);
+        
+        if (!result.granted) {
+          setModal({ 
+            visible: true, 
+            title: 'Peringatan', 
+            body: 'Izin kamera diperlukan untuk melanjutkan', 
+            variant: 'warning', 
+            footerText: 'Tutup' 
+          });
+          return;
+        }
+      }
 
       // 1) Fake GPS check
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -268,43 +430,37 @@ export default function AbsensiPage() {
 
       // 3) Device id mismatch
       try {
-        const uniqueId = await DeviceInfo.getUniqueId();
-        
-        if (user?.device_id && user.device_id !== uniqueId) {
-          setModal({ 
-            visible: true, 
-            title: 'Peringatan', 
-            body: 'Perangkat yang anda gunakan tidak terdaftar dalam pada data perangkat HRD, Hubungi Team HRD untuk melakukan reset perangkat baru jika anda ingin mengganti Perangkat/HP', 
-            variant: 'warning', 
-            footerText: 'Tutup' 
-          });
-          return;
+        let uniqueId;
+        try {
+          uniqueId = await getDeviceId();
+        } catch (error) {
+          console.error('Error getting device ID:', error);
+          uniqueId = `error-${Platform.OS}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         }
+        
+        // if (user?.device_id && user.device_id !== uniqueId) {
+        //   setModal({ 
+        //     visible: true, 
+        //     title: 'Peringatan', 
+        //     body: 'Perangkat yang anda gunakan tidak terdaftar dalam pada data perangkat HRD, '+
+        //     'Hubungi Team HRD untuk melakukan reset perangkat baru jika anda ingin mengganti Perangkat/HP\n\n' +
+        //     DeviceInfo.modelId, 
+        //     variant: 'warning', 
+        //     footerText: 'Tutup' 
+        //   });
+        //   return;
+        // }
       } catch {}
 
-      // Camera permission
-      const permission = await Camera.getCameraPermissionStatus();
-      if (permission !== 'granted') {
-        const result = await Camera.requestCameraPermission();
-        if (result !== 'granted') {
-          setModal({ 
-            visible: true, 
-            title: 'Peringatan', 
-            body: 'Izin kamera diperlukan untuk melanjutkan', 
-            variant: 'warning', 
-            footerText: 'Tutup' 
-          });
-          return;
-        }
-      }
-
+      console.log('📸 All checks passed, opening camera...');
       setCamType(type);
       setShowCamera(true);
     } catch (e) {
+      console.error('Camera error:', e);
       setModal({ 
         visible: true, 
         title: 'Error', 
-        body: 'Gagal membuka kamera', 
+        body: `Gagal membuka kamera: ${e?.message || 'Unknown error'}`, 
         variant: 'danger', 
         footerText: 'Tutup' 
       });
@@ -477,7 +633,7 @@ export default function AbsensiPage() {
                   onClose={() => setShowCamera(false)}
                   onCapture={async (photo) => {
                     try {
-                      await AsyncStorage.setItem('@last_selfie', JSON.stringify(photo));
+                      console.log('📸 Camera captured photo:', photo);
                       
                       // Submit check-in/check-out
                       if (camType === 'in') {
@@ -486,11 +642,11 @@ export default function AbsensiPage() {
                         await handleCheckOut(photo);
                       }
                     } catch (error) {
-                      console.error('Error saving/submitting photo:', error);
+                      console.error('Error submitting photo:', error);
                       setModal({ 
                         visible: true, 
                         title: 'Error', 
-                        body: 'Gagal menyimpan foto', 
+                        body: 'Gagal mengirim foto. Silakan coba lagi.', 
                         variant: 'danger', 
                         footerText: 'Tutup' 
                       });
@@ -510,6 +666,30 @@ export default function AbsensiPage() {
           variant={modal.variant}
           onClose={() => setModal(p => ({ ...p, visible: false }))}
         />
+        
+        {/* Loading Overlay */}
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={isSubmitting}
+          onRequestClose={() => {}}
+        >
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator 
+                size="large" 
+                color="#FFFFFF" 
+                style={styles.loadingSpinner}
+              />
+              <Text style={styles.loadingText}>
+                {camType === 'in' ? 'Sedang memproses Check-In...' : 'Sedang memproses Check-Out...'}
+              </Text>
+              <Text style={styles.loadingSubtext}>
+                Mohon tunggu sebentar
+              </Text>
+            </View>
+          </View>
+        </Modal>
        </View>
      </AppScreen>
    );
@@ -623,5 +803,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins-Medium',
     fontWeight: '600',
+  },
+  loadingOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  loadingContainer: {
+    backgroundColor: '#1F2937',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 280,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  loadingSpinner: {
+    marginBottom: 16,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    fontFamily: 'Poppins-Light',
+    textAlign: 'center',
   },
 });

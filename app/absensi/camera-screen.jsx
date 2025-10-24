@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
@@ -8,25 +8,8 @@ export default function CameraScreen({ onClose, onCapture, type }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        if (!permission?.granted) {
-          const { granted } = await requestPermission();
-          if (!granted) {
-            Alert.alert('Izin Kamera', 'Izin kamera diperlukan', [
-              { text: 'OK', onPress: onClose },
-            ]);
-          }
-        }
-      } catch (e) {
-        Alert.alert('Error', 'Tidak dapat mengakses kamera');
-        onClose && onClose();
-      }
-    })();
-  }, [permission]);
-
   if (!permission) {
+    // Camera permissions are still loading
     return (
       <View style={styles.wrapper}>
         <View style={styles.center}>
